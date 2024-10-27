@@ -1,4 +1,4 @@
-VENV_DIR=~/.venv
+VENV_DIR=~/.finetunellm
 BASHRC=~/.bashrc
 
 setup:
@@ -16,3 +16,7 @@ clean:
 
 run:
 	streamlit run main.py
+
+train:
+	python train.py
+	

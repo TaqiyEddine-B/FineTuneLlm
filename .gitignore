@@ -162,3 +162,9 @@ cython_debug/
 #.idea/
 
 secrets.toml
+
+mlruns
+.vscode
+.results
+temp
+output

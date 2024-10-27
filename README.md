@@ -1,2 +1,1 @@
-# app-template
-Python-based app template for PoCs and experiments 
+# Fine-Tuning Llama-3.1-8B
