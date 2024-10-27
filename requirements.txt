@@ -1,0 +1,2 @@
+ipykernel==6.29.5
+streamlit==1.39.0
