@@ -19,4 +19,10 @@ run:
 
 train:
 	python train.py
-	
+
+inf:
+	python inference.py
+
+lint:
+	ruff check . --fix --unsafe-fixes
+
