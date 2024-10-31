@@ -6,9 +6,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 class Inference:
     def __init__(self, base_model_name: str, adapter_path: str):
         print(f"Loading base model {base_model_name}")
-        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name)
 
-        # Load the base model
+        # Load the tokenizer for the LLaMA model
+        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name,use_fast=True)
+
+        # Load the base model with specified parameters
         base_model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
             torch_dtype=torch.float16,
@@ -16,18 +18,23 @@ class Inference:
             # trust_remote_code=True
         )
 
+
         # Load and apply the LoRA adapter
         print(f"Loading adapter from {adapter_path}")
-        self.model = PeftModel.from_pretrained(base_model, adapter_path)
+        self.model = PeftModel.from_pretrained(base_model, adapter_path, torch_dtype=torch.float16,)
 
-        self.pipeline = pipeline(
+
+        self.text_generator = pipeline(
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
             torch_dtype=torch.float16,
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
+            batch_size=16,
         )
+
+
 
     def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
         torch.cuda.empty_cache()  # Clear GPU cache before generation
@@ -48,7 +55,7 @@ class Inference:
         #     # return_full_text=False  # Only return new generated text
         # )
         # response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        result = self.pipeline(
+        result = self.text_generator(
             formatted_prompt,
             max_new_tokens=max_new_tokens,
             do_sample=True,
@@ -113,7 +120,7 @@ if __name__ == "__main__":
     # base_model = "meta-llama/Meta-Llama-3.1-8B"
     base_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
-    adapter_path = "output/Meta-Llama-3.1-8B_finetune_05_23_29102024"
+    adapter_path = "output/Meta-Llama-3.1-8B-Instruct_finetune_04_59_29102024"
     inference = Inference(base_model_name=base_model, adapter_path=adapter_path)
     print(inference.generate("What is the capital of France?"))
 

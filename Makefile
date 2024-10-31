@@ -26,3 +26,5 @@ inf:
 lint:
 	ruff check . --fix --unsafe-fixes
 
+mlflow:
+	mlflow ui

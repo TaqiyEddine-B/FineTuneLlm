@@ -1,7 +1,6 @@
 import datetime
 import os
 
-import mlflow
 import torch
 from datasets import load_dataset
 from peft import LoraConfig
@@ -9,11 +8,14 @@ from transformers import AutoTokenizer, BitsAndBytesConfig, LlamaForCausalLM, Tr
 from trl import SFTTrainer
 from zoneinfo import ZoneInfo
 
+from utils import setup_mlflow_tracking
+
 
 class LlmTrainer:
     def __init__(self, model_name: str, bit_size: int = 8):
         # Configure quantization settings for efficient loading and training
 
+        self.model_name = model_name
         quant_type = "nf4" if bit_size == 4 else "int8"
         self.bnb_config = BitsAndBytesConfig(
             load_in_4bit=(bit_size == 4),
@@ -26,7 +28,7 @@ class LlmTrainer:
         self.model = LlamaForCausalLM.from_pretrained(
             model_name,
             # quantization_config=self.bnb_config,
-            trust_remote_code=True,
+            # trust_remote_code=True,
             torch_dtype=torch.bfloat16,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -52,9 +54,10 @@ class LlmTrainer:
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             logging_dir=logging_dir,
-            logging_steps=10,
+            logging_steps=20,
             gradient_checkpointing=True,
             report_to=None,
+            # max_seq_length=512,
         )
 
         # LoRA configuration for model adaptation
@@ -73,11 +76,9 @@ class LlmTrainer:
     def train_model(self, experiment_name: str = "llama_experiment"):
         # Fine-tune model within an mlflow experiment
         print("Starting model fine-tuning...")
-
-        mlflow.set_experiment(experiment_name)
-        with mlflow.start_run() as _:
+        with setup_mlflow_tracking(self.model_name) as _:
             self.trainer.train()
-        print("Training completed.")
+            print("Training completed.")
 
     def save_model(self, save_path: str = "output/"):
         # Save the trained model to the specified path
