@@ -8,7 +8,8 @@ class Inference:
         print(f"Loading base model {base_model_name}")
 
         # Load the tokenizer for the LLaMA model
-        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name,use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            base_model_name, use_fast=True)
 
         # Load the base model with specified parameters
         base_model = AutoModelForCausalLM.from_pretrained(
@@ -18,13 +19,12 @@ class Inference:
             # trust_remote_code=True
         )
 
-
         # Load and apply the LoRA adapter
         print(f"Loading adapter from {adapter_path}")
-        self.model = PeftModel.from_pretrained(base_model, adapter_path, torch_dtype=torch.float16,)
+        self.model = PeftModel.from_pretrained(
+            base_model, adapter_path, torch_dtype=torch.float16,)
 
-
-        self.text_generator = pipeline(
+        self.pipeline = pipeline(
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
@@ -32,9 +32,8 @@ class Inference:
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
             batch_size=16,
+            max_new_tokens=512
         )
-
-
 
     def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
         torch.cuda.empty_cache()  # Clear GPU cache before generation
@@ -44,18 +43,8 @@ class Inference:
         Your answer must begin with capital letter and end with full stop.
         <|end_header_id|>{prompt}<|eot_id|>
         """
-        # inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.model.device)
 
-        # outputs = self.model.generate(
-        #     **inputs,
-        #     max_length=max_length,
-        #     pad_token_id=self.tokenizer.eos_token_id,
-        #     num_return_sequences=1,
-        #     # clean_up_tokenization_spaces=True,  # Clean output
-        #     # return_full_text=False  # Only return new generated text
-        # )
-        # response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        result = self.text_generator(
+        result = self.pipeline(
             formatted_prompt,
             max_new_tokens=max_new_tokens,
             do_sample=True,
@@ -67,7 +56,6 @@ class Inference:
         )
         return result[0]["generated_text"].strip()
 
-        # return response
 
 
 class HuggingfaceInference:
@@ -90,6 +78,8 @@ class HuggingfaceInference:
             torch_dtype=torch.float16,
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
+            max_new_tokens=512
+
         )
 
     def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
@@ -121,7 +111,8 @@ if __name__ == "__main__":
     base_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
     adapter_path = "output/Meta-Llama-3.1-8B-Instruct_finetune_04_59_29102024"
-    inference = Inference(base_model_name=base_model, adapter_path=adapter_path)
+    inference = Inference(base_model_name=base_model,
+                          adapter_path=adapter_path)
     print(inference.generate("What is the capital of France?"))
 
     # Example with direct Huggingface model

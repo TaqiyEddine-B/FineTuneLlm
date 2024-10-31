@@ -28,3 +28,6 @@ lint:
 
 mlflow:
 	mlflow ui
+
+chainlit:
+	chainlit run app.py -w
