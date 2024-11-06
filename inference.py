@@ -1,3 +1,5 @@
+import json
+
 import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -8,8 +10,7 @@ class Inference:
         print(f"Loading base model {base_model_name}")
 
         # Load the tokenizer for the LLaMA model
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            base_model_name, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name, use_fast=True)
 
         # Load the base model with specified parameters
         base_model = AutoModelForCausalLM.from_pretrained(
@@ -22,7 +23,10 @@ class Inference:
         # Load and apply the LoRA adapter
         print(f"Loading adapter from {adapter_path}")
         self.model = PeftModel.from_pretrained(
-            base_model, adapter_path, torch_dtype=torch.float16,)
+            base_model,
+            adapter_path,
+            torch_dtype=torch.float16,
+        )
 
         self.pipeline = pipeline(
             "text-generation",
@@ -32,7 +36,7 @@ class Inference:
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
             batch_size=16,
-            max_new_tokens=512
+            max_new_tokens=512,
         )
 
     def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
@@ -57,7 +61,6 @@ class Inference:
         return result[0]["generated_text"].strip()
 
 
-
 class HuggingfaceInference:
     def __init__(self, model_id="meta-llama/Meta-Llama-3.1-8B"):
         self.model_id = model_id
@@ -78,8 +81,7 @@ class HuggingfaceInference:
             torch_dtype=torch.float16,
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
-            max_new_tokens=512
-
+            max_new_tokens=512,
         )
 
     def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
@@ -104,17 +106,52 @@ class HuggingfaceInference:
         return result[0]["generated_text"].strip()
 
 
+def test_experiment(experiment_id: str):
+    print("\nStep 1: Load questions")
+    # Load questions
+    with open("questions.json") as f:
+        data = json.load(f)
+        questions = data["questions"]
+
+    base_model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+
+    print(f"\nStep 2: Test the base model : {base_model_id}")
+    base_model = HuggingfaceInference(model_id=base_model_id)
+    experiment_results = {}
+    for item in questions:
+        base_model_answer = base_model.generate(item["question"])
+        experiment_results[item["id"]] = {
+            "id": item["id"],
+            "question": item["question"],
+            "base_model": base_model_answer,
+            "fine-tuned_model": "",
+        }
+
+    del base_model
+    # clear cuda cache
+    torch.cuda.empty_cache()
+
+    adapter_path = f"output/Meta-Llama-3.1-8B-Instruct_finetune_{experiment_id}"
+    finetuned_model = Inference(base_model_name=base_model_id, adapter_path=adapter_path)
+
+    print(f"\nStep 3: Test the fine-tuned model : {adapter_path}")
+    for item in questions:
+        finetuned_model_answer = finetuned_model.generate(item["question"])
+        experiment_results[item["id"]]["fine-tuned_model"] = finetuned_model_answer
+
+    #  Save results of experiment in results.json by appending the dict results to the existing results.json
+    with open("results.json") as f:
+        results_data = json.load(f)
+        results_data["data"][experiment_id] = experiment_results
+
+    # Save the updated results
+    with open("results.json", "w") as f:
+        json.dump(results_data, f, indent=4)
+
+    print("\nExperiment results saved to results.json")
+
+
 # main function
 if __name__ == "__main__":
-    # base_model = "NousResearch/Meta-Llama-3.1-8B"
-    # base_model = "meta-llama/Meta-Llama-3.1-8B"
-    base_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-
-    adapter_path = "output/Meta-Llama-3.1-8B-Instruct_finetune_04_59_29102024"
-    inference = Inference(base_model_name=base_model,
-                          adapter_path=adapter_path)
-    print(inference.generate("What is the capital of France?"))
-
-    # Example with direct Huggingface model
-    # hf_inference = HuggingfaceInference(model_id=base_model)
-    # print(hf_inference.generate("What is the capital of France?"))
+    experiment_id = "20241105_1020"
+    test_experiment(experiment_id=experiment_id)

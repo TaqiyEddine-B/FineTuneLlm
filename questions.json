@@ -1,0 +1,32 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "My package hasn't arrived yet."
+    },
+    {
+      "id": 2,
+      "question": "I received the wrong item, and it's damaged."
+    },
+    {
+      "id": 3,
+      "question": "I was charged twice for shipping."
+    },
+    {
+      "id": 4,
+      "question": "I want to return an item I bought 45 days ago. It's unopened."
+    },
+    {
+      "id": 5,
+      "question": "This is the third time I'm contacting you! Your service is terrible and I want my money back NOW!"
+    },
+    {
+      "id": 6,
+      "question": "Thanks for helping with my refund. When will I see it in my account?"
+    },
+    {
+      "id": 7,
+      "question": "I think we're done here."
+    }
+  ]
+}

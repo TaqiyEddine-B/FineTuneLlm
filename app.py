@@ -14,16 +14,15 @@ async def on_chat_start():
     testing_finetuned_model = True
 
     base_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    experiment_id = "20241105_1534"
 
-    if testing_finetuned_model :
-        adapter_path = "output/Meta-Llama-3.1-8B-Instruct_finetune_14_49_30102024"
-        inference = Inference(base_model_name=base_model,
-                            adapter_path=adapter_path)
+    if testing_finetuned_model:
+        adapter_path = f"output/Meta-Llama-3.1-8B-Instruct_finetune_{experiment_id}"
+        inference = Inference(base_model_name=base_model, adapter_path=adapter_path)
         model = HuggingFacePipeline(pipeline=inference.pipeline)
     else:
         inference = HuggingfaceInference(model_id=base_model)
-        model =HuggingFacePipeline(pipeline=inference.pipeline)
-
+        model = HuggingFacePipeline(pipeline=inference.pipeline)
 
     template = """<|begin_of_text|><|start_header_id|>
         You are Question/answer assistant.
@@ -37,8 +36,7 @@ async def on_chat_start():
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    runnable = cast(Runnable, cl.user_session.get(
-        "runnable"))  # type: Runnable
+    runnable = cast(Runnable, cl.user_session.get("runnable"))  # type: Runnable
 
     msg = cl.Message(content="")
 

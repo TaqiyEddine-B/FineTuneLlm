@@ -14,11 +14,10 @@ clean:
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment removed"
 
-run:
-	streamlit run main.py
-
 train:
 	python train.py
+train_unsloth:
+	python train_unsloth.py
 
 inf:
 	python inference.py
@@ -31,3 +30,6 @@ mlflow:
 
 chainlit:
 	chainlit run app.py -w
+
+format:
+	ruff format .
