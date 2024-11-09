@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class FinetuneConfig(BaseModel):
     # Training parameters
-    max_steps: int = 200
+    max_steps: int = 80
     per_device_train_batch_size: int = 2
     gradient_accumulation_steps: int = 4
     warmup_steps: int = 10

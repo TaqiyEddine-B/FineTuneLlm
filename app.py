@@ -14,7 +14,7 @@ async def on_chat_start():
     testing_finetuned_model = True
 
     base_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    experiment_id = "20241105_1534"
+    experiment_id = "20241106_0551"
 
     if testing_finetuned_model:
         adapter_path = f"output/Meta-Llama-3.1-8B-Instruct_finetune_{experiment_id}"

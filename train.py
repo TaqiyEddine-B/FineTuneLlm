@@ -44,7 +44,7 @@ class LlmTrainer:
     def configure_trainer(self, experiment_name: str):
         """Configure the trainer with the specified configurations."""
 
-        training_args = TrainingArguments(
+        self.training_args = TrainingArguments(
             max_steps=self.config.max_steps,
             per_device_train_batch_size=self.config.per_device_train_batch_size,
             gradient_accumulation_steps=self.config.gradient_accumulation_steps,
@@ -59,20 +59,22 @@ class LlmTrainer:
         )
 
         # LoRA configuration for model adaptation
-        lora_config = LoraConfig(r=self.config.r, use_gradient_checkpointing=True, task_type="CAUSAL_LM")
+        self.lora_config = LoraConfig(r=self.config.r)
+
+
+
+    def train_model(self, experiment_name: str = "llama_experiment"):
+        # Fine-tune model within an mlflow experiment
 
         # Initialize the trainer with configurations
         self.trainer = SFTTrainer(
             model=self.model,
             tokenizer=self.tokenizer,
-            args=training_args,
-            peft_config=lora_config,
+            args=self.training_args,
+            peft_config=self.lora_config,
             train_dataset=self.dataset,
             dataset_text_field="response",
         )
-
-    def train_model(self, experiment_name: str = "llama_experiment"):
-        # Fine-tune model within an mlflow experiment
         print("Starting model fine-tuning...")
         with setup_mlflow_tracking(self.model_name) as _:
             self.trainer.train()
