@@ -1,5 +1,5 @@
 {
-    "name": "App-Template  Container",
+    "name": "Finetune LLM Container",
     "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
     "shutdownAction": "stopContainer",
     "customizations": {
@@ -11,5 +11,8 @@
             ]
         }
     },
-    "postCreateCommand": "make setup install"
+    "postCreateCommand": "make setup install",
+    "runArgs": [
+        "--gpus=all"
+    ]
 }
