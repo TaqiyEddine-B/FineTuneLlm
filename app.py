@@ -6,7 +6,7 @@ from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.prompts import PromptTemplate
 from langchain_huggingface.llms import HuggingFacePipeline
 
-from inference import HuggingfaceInference, Inference
+from inference import BaseInference, FinetunedModelInference
 
 
 @cl.on_chat_start
@@ -18,10 +18,10 @@ async def on_chat_start():
 
     if testing_finetuned_model:
         adapter_path = f"output/Meta-Llama-3.1-8B-Instruct_finetune_{experiment_id}"
-        inference = Inference(base_model_name=base_model, adapter_path=adapter_path)
+        inference = FinetunedModelInference(base_model_name=base_model, adapter_path=adapter_path)
         model = HuggingFacePipeline(pipeline=inference.pipeline)
     else:
-        inference = HuggingfaceInference(model_id=base_model)
+        inference = BaseInference(model_id=base_model)
         model = HuggingFacePipeline(pipeline=inference.pipeline)
 
     template = """<|begin_of_text|><|start_header_id|>

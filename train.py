@@ -47,6 +47,7 @@ class LlmTrainer:
         self.training_args = TrainingArguments(
             max_steps=self.config.max_steps,
             per_device_train_batch_size=self.config.per_device_train_batch_size,
+            learning_rate=self.config.learning_rate,
             gradient_accumulation_steps=self.config.gradient_accumulation_steps,
             warmup_steps=self.config.warmup_steps,
             optim=self.config.optim,
@@ -60,8 +61,6 @@ class LlmTrainer:
 
         # LoRA configuration for model adaptation
         self.lora_config = LoraConfig(r=self.config.r)
-
-
 
     def train_model(self, experiment_name: str = "llama_experiment"):
         # Fine-tune model within an mlflow experiment
@@ -94,6 +93,7 @@ class LlmTrainer:
         print(f"Model saved to {save_path}")
 
     def train_pipeline(self):
+        """The main training pipeline."""
         model_short_name = model_name.split("/")[-1]
         timestamp = datetime.datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%d_%H%M")
         experiment_name = f"{model_short_name}_finetune_{timestamp}"
@@ -108,6 +108,7 @@ class LlmTrainer:
 
 
 if __name__ == "__main__":
+    """Main entry point for the script."""
     model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"
     dataset_name = "bitext/Bitext-customer-support-llm-chatbot-training-dataset"
 

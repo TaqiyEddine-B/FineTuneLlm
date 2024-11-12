@@ -1,12 +1,20 @@
+"""Module for base and finetuned model inference classes"""
+
 import json
 
 import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
+from config import InferenceConfig
 
-class Inference:
+
+class FinetunedModelInference:
+    """Class for finetuned model inference"""
+
     def __init__(self, base_model_name: str, adapter_path: str):
+        self.config = InferenceConfig()
+
         print(f"Loading base model {base_model_name}")
 
         # Load the tokenizer for the LLaMA model
@@ -15,9 +23,8 @@ class Inference:
         # Load the base model with specified parameters
         base_model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
-            torch_dtype=torch.float16,
+            torch_dtype=self.config.torch_dtype,
             device_map="cuda:0",
-            # trust_remote_code=True
         )
 
         # Load and apply the LoRA adapter
@@ -25,21 +32,22 @@ class Inference:
         self.model = PeftModel.from_pretrained(
             base_model,
             adapter_path,
-            torch_dtype=torch.float16,
+            torch_dtype=self.config.torch_dtype,
         )
 
         self.pipeline = pipeline(
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
-            torch_dtype=torch.float16,
+            torch_dtype=self.config.torch_dtype,
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
             batch_size=16,
-            max_new_tokens=512,
+            max_new_tokens=self.config.max_new_tokens,
         )
 
-    def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
+    def generate(self, prompt: str):
+        """Generate text based on the provided prompt."""
         torch.cuda.empty_cache()  # Clear GPU cache before generation
 
         formatted_prompt = f"""<|begin_of_text|><|start_header_id|>
@@ -50,10 +58,10 @@ class Inference:
 
         result = self.pipeline(
             formatted_prompt,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=self.config.max_new_tokens,
             do_sample=True,
-            temperature=temperature,
-            top_p=top_p,
+            temperature=self.config.temperature,
+            top_p=self.config.top_p,
             num_return_sequences=1,
             clean_up_tokenization_spaces=True,  # Clean output
             return_full_text=False,  # Only return new generated text
@@ -61,16 +69,22 @@ class Inference:
         return result[0]["generated_text"].strip()
 
 
-class HuggingfaceInference:
+class BaseInference:
+    """Class for base model inference"""
+
     def __init__(self, model_id="meta-llama/Meta-Llama-3.1-8B"):
+        """Initialize the class with model ID"""
+
+        self.config = InferenceConfig()
+
         self.model_id = model_id
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         # Load model with specific GPU configurations
         self.model = AutoModelForCausalLM.from_pretrained(
             model_id,
-            torch_dtype=torch.float16,  # Use float16 for GPU memory efficiency
-            device_map="cuda:0",  # Explicitly use first GPU
+            torch_dtype=self.config.torch_dtype,
+            device_map="cuda:0",
         )
 
         # Create pipeline with GPU specifications
@@ -78,13 +92,15 @@ class HuggingfaceInference:
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
-            torch_dtype=torch.float16,
+            torch_dtype=self.config.torch_dtype,
             pad_token_id=self.tokenizer.eos_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
-            max_new_tokens=512,
+            max_new_tokens=self.config.max_new_tokens,
         )
 
-    def generate(self, prompt, max_new_tokens=50, temperature=0.1, top_p=0.9):
+    def generate(self, prompt: str):
+        """Generate text based on the provided prompt"""
+
         torch.cuda.empty_cache()  # Clear GPU cache before generation
         formatted_prompt = f"""
         <|begin_of_text|><|start_header_id|>
@@ -95,10 +111,10 @@ class HuggingfaceInference:
 
         result = self.pipeline(
             formatted_prompt,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=self.config.max_new_tokens,
             do_sample=True,
-            temperature=temperature,
-            top_p=top_p,
+            temperature=self.config.temperature,
+            top_p=self.config.top_p,
             num_return_sequences=1,
             clean_up_tokenization_spaces=True,  # Clean output
             return_full_text=False,  # Only return new generated text
@@ -107,6 +123,7 @@ class HuggingfaceInference:
 
 
 def test_experiment(experiment_id: str):
+    """Test the base model and finetuned model"""
     print("\nStep 1: Load questions")
     # Load questions
     with open("questions.json") as f:
@@ -116,7 +133,7 @@ def test_experiment(experiment_id: str):
     base_model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
     print(f"\nStep 2: Test the base model : {base_model_id}")
-    base_model = HuggingfaceInference(model_id=base_model_id)
+    base_model = BaseInference(model_id=base_model_id)
     experiment_results = {}
     for item in questions:
         base_model_answer = base_model.generate(item["question"])
@@ -132,7 +149,7 @@ def test_experiment(experiment_id: str):
     torch.cuda.empty_cache()
 
     adapter_path = f"output/Meta-Llama-3.1-8B-Instruct_finetune_{experiment_id}"
-    finetuned_model = Inference(base_model_name=base_model_id, adapter_path=adapter_path)
+    finetuned_model = FinetunedModelInference(base_model_name=base_model_id, adapter_path=adapter_path)
 
     print(f"\nStep 3: Test the fine-tuned model : {adapter_path}")
     for item in questions:
