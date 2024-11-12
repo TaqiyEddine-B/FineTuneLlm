@@ -17,7 +17,15 @@ make setup
 make install
 ```
 
-3. Launch the fine-tuning process:
+3. Authenticate with Hugging Face
+You need to authenticate your environment with Hugging Face to access the model. You can do this by logging in using the Hugging Face CLI:
+```bash
+huggingface-cli login
+```
+This command will prompt you to enter your Hugging Face credentials. Make sure you use the account that has access to the gated model.
+
+
+4. Launch the fine-tuning process:
 ```bash
 make train
 ```
