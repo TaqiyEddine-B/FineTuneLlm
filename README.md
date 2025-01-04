@@ -22,7 +22,7 @@ You need to authenticate your environment with Hugging Face to access the model.
 ```bash
 huggingface-cli login
 ```
-This command will prompt you to enter your Hugging Face credentials. Make sure you use the account that has access to the gated model.
+This command will prompt you to enter your Hugging Face credentials. Create a new READ token at [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) and copy it.
 
 
 4. Launch the fine-tuning process:
