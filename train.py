@@ -1,3 +1,4 @@
+"""Fine-tune a pretrained model on a dataset."""
 import datetime
 import os
 
@@ -30,7 +31,7 @@ class LlmTrainer:
 
         self.trainer = None
 
-    def load_dataset(self, dataset_name: str, percentage: float = 1.0):
+    def load_preprocess_dataset(self, dataset_name: str, percentage: float = 1.0):
         """Load and preprocess the dataset."""
 
         dataset = load_dataset(dataset_name, split="train")
@@ -40,6 +41,15 @@ class LlmTrainer:
         sample_size = int(len(dataset) * percentage)
         self.dataset = dataset.select(range(sample_size))
         print(f"Loaded dataset: {len(self.dataset)} samples")
+        print("\tPreprocessing the dataset...")
+        def merge_sample(example):
+            """Merge the instruction and input into a single conversation."""
+
+            example["conversation"] = f"""<|begin_of_text|><|start_header_id|>You are Question/answer assistant. Your answer must begin with capital letter and end with full stop.<|end_header_id|>
+            Customer: {example['instruction']}\nAssistant: {example['response']}""" # noqa: E501
+            return example
+        self.dataset = self.dataset.map(merge_sample)
+
 
     def configure_trainer(self, experiment_name: str):
         """Configure the trainer with the specified configurations."""
@@ -63,7 +73,7 @@ class LlmTrainer:
         self.lora_config = LoraConfig(r=self.config.r)
 
     def train_model(self, experiment_name: str = "llama_experiment"):
-        # Fine-tune model within an mlflow experiment
+        """Train the model within an mlflow experiment."""
 
         # Initialize the trainer with configurations
         self.trainer = SFTTrainer(
@@ -72,7 +82,7 @@ class LlmTrainer:
             args=self.training_args,
             peft_config=self.lora_config,
             train_dataset=self.dataset,
-            dataset_text_field="response",
+            dataset_text_field="conversation",
         )
         print("Starting model fine-tuning...")
         with setup_mlflow_tracking(self.model_name) as _:
@@ -98,7 +108,7 @@ class LlmTrainer:
         timestamp = datetime.datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%d_%H%M")
         experiment_name = f"{model_short_name}_finetune_{timestamp}"
 
-        self.load_dataset(dataset_name=self.dataset_name)
+        self.load_preprocess_dataset(dataset_name=self.dataset_name)
 
         self.configure_trainer(experiment_name=experiment_name)
 
